@@ -2,7 +2,6 @@ package ctg
 
 import collector.TcpNetworkPacket
 import org.assertj.core.api.Assertions.assertThat
-import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
 
 /**
@@ -53,8 +52,11 @@ class CtgBufferTest {
     assertThat(packets.size).isEqualTo(6)
     packets.forEachIndexed { index, tcpNetworkPacket ->
       println("checking buffer #${index}")
-      if (index != 3)
+      if (index != 3) {
         assertThat(tcpNetworkPacket.data).isEqualTo(expected[index].data)
+      } else {
+        assertThat(tcpNetworkPacket.data.length).isEqualTo(313)
+      }
     }
   }
 }
