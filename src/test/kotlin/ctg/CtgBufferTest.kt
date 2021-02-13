@@ -1,6 +1,9 @@
 package ctg
 
 import collector.TcpNetworkPacket
+import com.ibm.ctg.monitoring.RequestExitMonitor
+import io.sniffy.configuration.SniffyConfiguration
+import io.sniffy.util.ReflectionUtil
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.RepeatedTest
 import org.junit.jupiter.api.Test
@@ -46,15 +49,26 @@ class CtgBufferTest {
       )
     )
 
-    val conversation = CtgCollector().collect()
-    assertThat(conversation.size).isEqualTo(1)
-    assertThat(conversation[0].port).isEqualTo(13200)
-    val packets = conversation[0].packets
-    assertThat(packets.size).isEqualTo(6)
-    packets.forEachIndexed { index, tcpNetworkPacket ->
-      println("checking buffer #${index}")
-      if (index != 3)
-        assertThat(tcpNetworkPacket.data).isEqualTo(expected[index].data)
+    for (i in 1..100) {
+
+      println("Iteration #$i")
+
+      // RequestExitMonitor.nextCtgCorrelator is a static counter which is included in payloads;
+      // We need to reset it in order to get sustainable and reproducible payloads
+      ReflectionUtil.setField(RequestExitMonitor::class.java, null, "nextCtgCorrelator", 0);
+
+      val conversation = CtgCollector().collect()
+      assertThat(conversation.size).isEqualTo(1)
+      assertThat(conversation[0].port).isEqualTo(13200)
+      val packets = conversation[0].packets
+      assertThat(packets.size).isEqualTo(6)
+      packets.forEachIndexed { index, tcpNetworkPacket ->
+        println("checking buffer #${index}")
+        if (index != 3)
+          assertThat(tcpNetworkPacket.data).isEqualTo(expected[index].data)
+      }
+
     }
+
   }
 }
