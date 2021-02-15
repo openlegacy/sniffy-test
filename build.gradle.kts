@@ -30,3 +30,7 @@ dependencies {
     // test.assertj
     testImplementation("org.assertj:assertj-core:3.18.1")
 }
+
+tasks.named<Test>("test") {
+    useJUnitPlatform()
+}

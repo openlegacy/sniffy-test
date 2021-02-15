@@ -1,6 +1,9 @@
 package ctg
 
 import collector.TcpNetworkPacket
+import com.ibm.ctg.monitoring.RequestExitMonitor
+import io.sniffy.configuration.SniffyConfiguration
+import io.sniffy.util.ReflectionUtil
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
 
@@ -45,18 +48,35 @@ class CtgBufferTest {
       )
     )
 
-    val conversation = CtgCollector().collect()
-    assertThat(conversation.size).isEqualTo(1)
-    assertThat(conversation[0].port).isEqualTo(13200)
-    val packets = conversation[0].packets
-    assertThat(packets.size).isEqualTo(6)
-    packets.forEachIndexed { index, tcpNetworkPacket ->
-      println("checking buffer #${index}")
-      if (index != 3) {
-        assertThat(tcpNetworkPacket.data).isEqualTo(expected[index].data)
-      } else {
-        assertThat(tcpNetworkPacket.data.length).isEqualTo(313)
+    for (i in 1..100) {
+
+      println("Iteration #$i")
+
+      // RequestExitMonitor.nextCtgCorrelator is a static counter which is included in payloads;
+      // We need to reset it in order to get sustainable and reproducible payloads
+      ReflectionUtil.setField(RequestExitMonitor::class.java, null, "nextCtgCorrelator", 0);
+
+      val conversation = CtgCollector().collect()
+      assertThat(conversation.size).isEqualTo(1)
+      assertThat(conversation[0].port).isEqualTo(13200)
+      val packets = conversation[0].packets
+      assertThat(packets.size).isEqualTo(6)
+      packets.forEachIndexed { index, tcpNetworkPacket ->
+        println("checking buffer #${index}")
+        if (index != 3) {
+          assertThat(tcpNetworkPacket.data).isEqualTo(expected[index].data)
+        } else {
+          // Second response contains timestamp from server so we cannot match it with hardcoded value
+          // Also length check isn't good enough since response contains IP address of client encoded as String
+          // So it's length may vary from machine to machine as well
+
+          // skip length comparision
+          assertThat(tcpNetworkPacket.data.substring(0, 60)).isEqualTo(expected[index].data.substring(0, 60))
+          // skip end comparision since it contains timestamp and depends on clinet IP address
+          assertThat(tcpNetworkPacket.data.substring(68)).startsWith(expected[index].data.substring(68, 261))
+        }
       }
     }
+
   }
 }
