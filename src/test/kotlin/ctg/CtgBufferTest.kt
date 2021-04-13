@@ -2,7 +2,6 @@ package ctg
 
 import collector.TcpNetworkPacket
 import com.ibm.ctg.monitoring.RequestExitMonitor
-import io.sniffy.configuration.SniffyConfiguration
 import io.sniffy.util.ReflectionUtil
 import org.assertj.core.api.Assertions.assertThat
 import org.junit.jupiter.api.Test
@@ -48,13 +47,13 @@ class CtgBufferTest {
       )
     )
 
-    for (i in 1..100) {
+    for (i in 1..10) {
 
       println("Iteration #$i")
 
       // RequestExitMonitor.nextCtgCorrelator is a static counter which is included in payloads;
       // We need to reset it in order to get sustainable and reproducible payloads
-      ReflectionUtil.setField(RequestExitMonitor::class.java, null, "nextCtgCorrelator", 0);
+      ReflectionUtil.setField(RequestExitMonitor::class.java, null, "nextCtgCorrelator", 0)
 
       val conversation = CtgCollector().collect()
       assertThat(conversation.size).isEqualTo(1)
@@ -70,13 +69,14 @@ class CtgBufferTest {
           // Also length check isn't good enough since response contains IP address of client encoded as String
           // So it's length may vary from machine to machine as well
 
-          // skip length comparision
+          // skip length comparison
           assertThat(tcpNetworkPacket.data.substring(0, 60)).isEqualTo(expected[index].data.substring(0, 60))
-          // skip end comparision since it contains timestamp and depends on clinet IP address
+          // skip end comparison since it contains timestamp and depends on client IP address
           assertThat(tcpNetworkPacket.data.substring(68)).startsWith(expected[index].data.substring(68, 261))
+          // ctg data section in our case is always the same
+          assertThat(tcpNetworkPacket.data.substring(114,494)).startsWith(expected[index].data.substring(114, 494))
         }
       }
     }
-
   }
 }

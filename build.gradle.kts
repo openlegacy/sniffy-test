@@ -4,7 +4,7 @@ plugins {
 
 group = "org.example"
 version = "1.0-SNAPSHOT"
-val sniffyVersion = "3.1.10-SNAPSHOT"
+val sniffyVersion = "3.1.11-SNAPSHOT"
 
 repositories {
     mavenCentral()
@@ -23,6 +23,7 @@ dependencies {
     implementation("io.sniffy:sniffy-core:$sniffyVersion")
     implementation("io.sniffy:sniffy-module-nio:$sniffyVersion")
     implementation("io.sniffy:sniffy-module-nio-compat:$sniffyVersion")
+    implementation("io.sniffy:sniffy-module-tls:$sniffyVersion")
 
     // test.junit
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.7.0")

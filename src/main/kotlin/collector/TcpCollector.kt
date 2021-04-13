@@ -1,9 +1,6 @@
 package collector
 
-import io.sniffy.Sniffy
-import io.sniffy.Spy
-import io.sniffy.SpyConfiguration
-import io.sniffy.Threads
+import io.sniffy.*
 import io.sniffy.configuration.SniffyConfiguration
 import io.sniffy.socket.AddressMatchers
 import io.sniffy.socket.NetworkPacket
@@ -17,48 +14,56 @@ import utils.ByteUtils
 
 abstract class TcpCollector {
 
-  init {
-    SniffyConfiguration.INSTANCE.isMonitorSocket = true
-    SniffyConfiguration.INSTANCE.isMonitorNio = true
-  }
+    init {
+        SniffyConfiguration.INSTANCE.isMonitorSocket = true
+        SniffyConfiguration.INSTANCE.isMonitorNio = true
+        SniffyConfiguration.INSTANCE.socketCaptureEnabled = true
+        SniffyConfiguration.INSTANCE.isDecryptTls = true
+    }
 
-  abstract fun doWork(): String
+    abstract fun doWork(): String
 
-  fun collect(): List<TcpConversation> {
+    fun collect(ssl: Boolean = false): List<TcpConversation> {
+        Sniffy.spy<Spy<*>>(SpyConfiguration.builder().captureNetworkTraffic(true).build()).use { spy: Spy<*> ->
 
-    Sniffy.spy<Spy<*>>(SpyConfiguration.builder().captureNetworkTraffic(true).build()).use { spy: Spy<*> ->
+            val host = doWork()
 
-      val host = doWork()
+            val networkTraffic: Map<SocketMetaData, List<NetworkPacket>> =
+                if (ssl) {
+                    spy.getDecryptedNetworkTraffic(
+                        Threads.ANY,  // capture traffic from all threads
+                        AddressMatchers.exactAddressMatcher(host),
+                        GroupingOptions(false, false, true) // capture traffic to any destinations
+                    )
+                } else {
+                    spy.getNetworkTraffic(
+                        Threads.ANY,  // capture traffic from all threads
+                        AddressMatchers.exactAddressMatcher(host) // capture traffic to any destinations
+                    )
+                }
+            return networkTraffic
+                .filter { (socketMetaData, _) -> socketMetaData.protocol == Protocol.TCP }
+                .map { (socketMetaData, networkPackets) ->
 
-      val networkTraffic: Map<SocketMetaData, List<NetworkPacket>> =
-        spy.getNetworkTraffic(
-          Threads.ANY,  // capture traffic from all threads
-          AddressMatchers.exactAddressMatcher(host) // capture traffic to any destinations
-        )
+                    TcpConversation(
+                        port = socketMetaData.getAddress().port,
+                        packets = getNetworkPackets(networkPackets)
+                    )
 
-      return networkTraffic
-        .filter { (socketMetaData, _) -> socketMetaData.protocol == Protocol.TCP }
-        .map { (socketMetaData, networkPackets) ->
-
-          TcpConversation(
-            port = socketMetaData.getAddress().port,
-            packets = getNetworkPackets(networkPackets)
-          )
-
+                }
         }
     }
-  }
 
-  private fun getNetworkPackets(networkPackets: List<NetworkPacket>) =
-    networkPackets.map { networkPacket ->
-      TcpNetworkPacket(
-        data = ByteUtils.bytesToHex(networkPacket.bytes),
-        length = networkPacket.bytes.size,
-        direction = if (networkPacket.isSent) {
-          "WRITE"
-        } else {
-          "READ"
+    private fun getNetworkPackets(networkPackets: List<NetworkPacket>) =
+        networkPackets.map { networkPacket ->
+            TcpNetworkPacket(
+                data = ByteUtils.bytesToHex(networkPacket.bytes),
+                length = networkPacket.bytes.size,
+                direction = if (networkPacket.isSent) {
+                    "WRITE"
+                } else {
+                    "READ"
+                }
+            )
         }
-      )
-    }
 }
