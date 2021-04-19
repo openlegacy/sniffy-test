@@ -19,6 +19,7 @@ abstract class TcpCollector {
         SniffyConfiguration.INSTANCE.isMonitorNio = true
         SniffyConfiguration.INSTANCE.socketCaptureEnabled = true
         SniffyConfiguration.INSTANCE.isDecryptTls = true
+        Sniffy.initialize()
     }
 
     abstract fun doWork(): String
