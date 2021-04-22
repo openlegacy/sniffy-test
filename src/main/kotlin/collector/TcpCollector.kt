@@ -2,6 +2,7 @@ package collector
 
 import io.sniffy.*
 import io.sniffy.configuration.SniffyConfiguration
+import io.sniffy.log.PolyglogLevel
 import io.sniffy.socket.AddressMatchers
 import io.sniffy.socket.NetworkPacket
 import io.sniffy.socket.Protocol
@@ -19,6 +20,8 @@ abstract class TcpCollector {
         SniffyConfiguration.INSTANCE.isMonitorNio = true
         SniffyConfiguration.INSTANCE.socketCaptureEnabled = true
         SniffyConfiguration.INSTANCE.isDecryptTls = true
+        SniffyConfiguration.INSTANCE.logLevel = PolyglogLevel.TRACE
+        Sniffy.initialize()
     }
 
     abstract fun doWork(): String
