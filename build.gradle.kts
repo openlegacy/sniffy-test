@@ -4,7 +4,7 @@ plugins {
 
 group = "org.example"
 version = "1.0-SNAPSHOT"
-val sniffyVersion = "3.1.11-SNAPSHOT"
+val sniffyVersion = "3.1.11"
 
 repositories {
     mavenCentral()
