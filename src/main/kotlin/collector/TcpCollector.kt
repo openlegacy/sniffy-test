@@ -24,35 +24,38 @@ abstract class TcpCollector {
 
     abstract fun doWork(): String
 
-    fun collect(ssl: Boolean = false): List<TcpConversation> {
-        Sniffy.spy<Spy<*>>(SpyConfiguration.builder().captureNetworkTraffic(true).build()).use { spy: Spy<*> ->
+    fun start() = Sniffy.spy<Spy<*>>(SpyConfiguration.builder().captureNetworkTraffic(true).build())
 
-            val host = doWork()
+    fun collect(ssl: Boolean = false, spy: Spy<*> ): List<TcpConversation> {
 
-            val networkTraffic: Map<SocketMetaData, List<NetworkPacket>> =
-                if (ssl) {
-                    spy.getDecryptedNetworkTraffic(
-                        Threads.ANY,  // capture traffic from all threads
-                        AddressMatchers.exactAddressMatcher(host),
-                        GroupingOptions(false, false, true) // capture traffic to any destinations
-                    )
-                } else {
-                    spy.getNetworkTraffic(
-                        Threads.ANY,  // capture traffic from all threads
-                        AddressMatchers.exactAddressMatcher(host) // capture traffic to any destinations
-                    )
-                }
-            return networkTraffic
-                .filter { (socketMetaData, _) -> socketMetaData.protocol == Protocol.TCP }
-                .map { (socketMetaData, networkPackets) ->
+      //  val spy = Sniffy.spy<Spy<*>>(SpyConfiguration.builder().captureNetworkTraffic(true).build())
 
-                    TcpConversation(
-                        port = socketMetaData.getAddress().port,
-                        packets = getNetworkPackets(networkPackets)
-                    )
+        val host = doWork()
 
-                }
-        }
+        val networkTraffic: Map<SocketMetaData, List<NetworkPacket>> =
+            if (ssl) {
+                spy.getDecryptedNetworkTraffic(
+                    Threads.ANY,  // capture traffic from all threads
+                    AddressMatchers.exactAddressMatcher(host),
+                    GroupingOptions(false, false, true) // capture traffic to any destinations
+                )
+            } else {
+                spy.getNetworkTraffic(
+                    Threads.ANY,  // capture traffic from all threads
+                    AddressMatchers.exactAddressMatcher(host) // capture traffic to any destinations
+                )
+            }
+        return networkTraffic
+            .filter { (socketMetaData, _) -> socketMetaData.protocol == Protocol.TCP }
+            .map { (socketMetaData, networkPackets) ->
+
+                TcpConversation(
+                    port = socketMetaData.getAddress().port,
+                    packets = getNetworkPackets(networkPackets)
+                )
+
+            }
+
     }
 
     private fun getNetworkPackets(networkPackets: List<NetworkPacket>) =

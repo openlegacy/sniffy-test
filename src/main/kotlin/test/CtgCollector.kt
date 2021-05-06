@@ -1,4 +1,4 @@
-package ctg
+package test
 
 import collector.TcpCollector
 import com.ibm.ctg.client.ECIRequest
